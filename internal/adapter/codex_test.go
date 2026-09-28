@@ -44,6 +44,30 @@ func TestWithoutCodexNativeAgents(t *testing.T) {
 	}
 }
 
+func TestCodexThreadStartedParent(t *testing.T) {
+	tests := []struct {
+		name   string
+		params json.RawMessage
+		want   string
+	}{
+		{name: "parent thread ID", params: json.RawMessage(`{"thread":{"parentThreadId":"abc"}}`), want: "abc"},
+		{name: "root thread", params: json.RawMessage(`{"thread":{}}`), want: ""},
+		{name: "missing thread", params: json.RawMessage(`{}`), want: ""},
+		{name: "malformed JSON", params: json.RawMessage(`{not json`), want: ""},
+		{name: "nil parameters", params: nil, want: ""},
+		{name: "empty parameters", params: json.RawMessage{}, want: ""},
+		{name: "snake case key is ignored", params: json.RawMessage(`{"thread":{"parent_thread_id":"abc"}}`), want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := codexThreadStartedParent(tt.params); got != tt.want {
+				t.Errorf("codexThreadStartedParent() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCodexParamsUseNativePermissionModes(t *testing.T) {
 	approveStart := codexThreadStartParams(StartRequest{
 		Model:          "gpt-5.5",
