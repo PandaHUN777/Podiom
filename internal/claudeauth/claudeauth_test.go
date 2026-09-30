@@ -51,6 +51,67 @@ func TestParseCredentials(t *testing.T) {
 	}
 }
 
+func setClaudeHome(t *testing.T) string {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	return home
+}
+
+func TestConfigDir(t *testing.T) {
+	home := setClaudeHome(t)
+	explicitDir := filepath.Join(home, "explicit")
+	envDir := filepath.Join(home, "from-env")
+
+	tests := []struct {
+		name      string
+		configDir string
+		envDir    string
+		want      string
+	}{
+		{name: "explicit path wins", configDir: explicitDir, envDir: envDir, want: explicitDir},
+		{name: "environment fallback", envDir: envDir, want: envDir},
+		{name: "default home fallback", want: filepath.Join(home, ".claude")},
+		{name: "explicit tilde path expands", configDir: "~/.claude-work", envDir: envDir, want: filepath.Join(home, ".claude-work")},
+		{name: "environment tilde path expands", envDir: "~/.claude-work", want: filepath.Join(home, ".claude-work")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("CLAUDE_CONFIG_DIR", tt.envDir)
+			if got := ConfigDir(tt.configDir); got != tt.want {
+				t.Errorf("ConfigDir(%q) with CLAUDE_CONFIG_DIR=%q = %q, want %q", tt.configDir, tt.envDir, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCredentialPath(t *testing.T) {
+	home := setClaudeHome(t)
+	explicitDir := filepath.Join(home, "explicit")
+
+	tests := []struct {
+		name      string
+		configDir string
+		envDir    string
+		want      string
+	}{
+		{name: "explicit path", configDir: explicitDir, envDir: filepath.Join(home, "from-env"), want: filepath.Join(explicitDir, ".credentials.json")},
+		{name: "environment fallback", envDir: filepath.Join(home, "from-env"), want: filepath.Join(home, "from-env", ".credentials.json")},
+		{name: "default home fallback", want: filepath.Join(home, ".claude", ".credentials.json")},
+		{name: "explicit tilde path", configDir: "~/.claude-work", envDir: filepath.Join(home, "from-env"), want: filepath.Join(home, ".claude-work", ".credentials.json")},
+		{name: "environment tilde path", envDir: "~/.claude-work", want: filepath.Join(home, ".claude-work", ".credentials.json")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("CLAUDE_CONFIG_DIR", tt.envDir)
+			if got := CredentialPath(tt.configDir); got != tt.want {
+				t.Errorf("CredentialPath(%q) with CLAUDE_CONFIG_DIR=%q = %q, want %q", tt.configDir, tt.envDir, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestKeychainService(t *testing.T) {
 	// A custom CLAUDE_CONFIG_DIR maps to the base service name suffixed with the
 	// first 8 hex chars of sha256(absolute dir), matching the Claude Code CLI.
