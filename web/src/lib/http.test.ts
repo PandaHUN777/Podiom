@@ -9,7 +9,7 @@ const { auth } = vi.hoisted(() => ({
 
 vi.mock("./auth.svelte", () => ({
   auth,
-  TOKEN_HEADER: "X-Podiam-Token",
+  TOKEN_HEADER: "X-Podiom-Token",
 }));
 
 vi.mock("./base", () => ({
@@ -36,7 +36,7 @@ describe("request", () => {
     await expect(request("api/agents")).resolves.toBe(response);
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(new Headers(init?.headers).has("X-Podiam-Token")).toBe(false);
+    expect(new Headers(init?.headers).has("X-Podiom-Token")).toBe(false);
   });
 
   it("sends the token and invalidates it on an API 401", async () => {
@@ -47,7 +47,7 @@ describe("request", () => {
     await request("/api/agents");
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(new Headers(init?.headers).get("X-Podiam-Token")).toBe("secret");
+    expect(new Headers(init?.headers).get("X-Podiom-Token")).toBe("secret");
     expect(auth.invalidate).toHaveBeenCalledOnce();
   });
 
@@ -72,7 +72,7 @@ describe("verifyToken", () => {
     await expect(verifyToken("candidate")).resolves.toBe(expected);
     expect(fetchMock).toHaveBeenCalledWith(
       new URL("api/auth/check", "http://podiom.test/base/"),
-      { headers: { "X-Podiam-Token": "candidate" } },
+      { headers: { "X-Podiom-Token": "candidate" } },
     );
   });
 
