@@ -210,3 +210,44 @@ func githubArchive(t *testing.T, files map[string]string) []byte {
 	}
 	return buf.Bytes()
 }
+
+func TestInstallURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		config config.GitHub
+		want   string
+	}{
+		{
+			name: "empty app slug",
+			want: "",
+		},
+		{
+			name:   "default web base",
+			config: config.GitHub{AppSlug: "podiom"},
+			want:   "https://github.com/apps/podiom/installations/new",
+		},
+		{
+			name:   "trailing slash",
+			config: config.GitHub{AppSlug: "podiom", WebBase: "https://github.com/"},
+			want:   "https://github.com/apps/podiom/installations/new",
+		},
+		{
+			name:   "multiple trailing slashes",
+			config: config.GitHub{AppSlug: "podiom", WebBase: "https://ghe.example.com///"},
+			want:   "https://ghe.example.com/apps/podiom/installations/new",
+		},
+		{
+			name:   "GitHub Enterprise web base",
+			config: config.GitHub{AppSlug: "internal-app", WebBase: "https://ghe.example.com"},
+			want:   "https://ghe.example.com/apps/internal-app/installations/new",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := New(Options{Config: tt.config})
+			if got := svc.installURL(); got != tt.want {
+				t.Fatalf("installURL() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
